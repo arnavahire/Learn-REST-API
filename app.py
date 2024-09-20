@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_smorest import Api 
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from dotenv import load_dotenv
 import models
 from db import db
 from blocklist import BLOCKLIST
@@ -15,6 +16,7 @@ from resources.user import blp as UserBlueprint
 def create_app(db_url=None):
 
     app = Flask(__name__) # Flask Convention
+    load_dotenv()
 
     #App configuration
     app.config["PROPAGATE_EXCEPTIONS"] = True
@@ -24,7 +26,7 @@ def create_app(db_url=None):
     app.config["OPENAPI_URL_PREFIX"] = "/"
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"  #  creates a swagger ui url at <localhost:port/swagger-ui>
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db") # if database url exists to connect to db client then use that, otherwise sqlite will be used by default
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # connect sqlAlchemy to the flask app using init_app

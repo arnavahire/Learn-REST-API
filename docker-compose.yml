@@ -1,0 +1,25 @@
+# NOTE:Use this file when you want to run postgres locally on docker container and want to connect to a database client such as dbeaver so that 
+# you can view your database on a UI. However we are running into some issues connecting to postgres on dbeaver, hence I am not using docker compose file.
+# I will be using docker run to run my code locally
+
+
+# services:
+#   web:
+#     build: .
+#     ports: 
+#       - "5432:5432"
+#     volumes:
+#       - .:/app
+#     depends_on:
+#       - db
+#     env_file:
+#       - ./.env
+#   db:
+#     image: postgres
+#     environment:
+#       - POSTGRES_PASSWORD=postgres
+#       - POSTGRES_DB=postgres
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+# volumes:
+#   postgres_data:
