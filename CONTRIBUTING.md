@@ -17,11 +17,11 @@ In order to build and run the docker image locally run the following commands
 
 ```
 docker build -t <image_name> .
-docker run -dp 5005:5000 -w /app -v "$(pwd):/app" <image_name>
+docker run -p 5000:5000 -w /app -v "$(pwd):/app" <image_name> sh -c "flask run --host 0.0.0.0"
 
 Example:
 docker build -t rest-api-flask-python .     
-docker run -dp 5005:5000 -w /app -v "$(pwd):/app" rest-api-flask-python
+docker run -p 5000:5000 -w /app -v "$(pwd):/app" rest-api-flask-python sh -c "flask run --host 0.0.0.0"
 ```
 
 ## URL to setup base environment of Insomnia to hit endpoints
@@ -31,7 +31,7 @@ When you setup the docker to listen on 5005 port use the following port.
 Update this in Base Environment section of Insomnia and you should be good to go.
 
 ```
-"url":"http://127.0.0.1:5005"
+"url":"http://127.0.0.1:5000"
 ```
 ### Render.com
 After creating account, logging in and configuring the project, once rendered it will create a url for you. This is the one for Stores Rest API setup. 

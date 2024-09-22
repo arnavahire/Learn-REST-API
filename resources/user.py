@@ -1,33 +1,60 @@
+import os
 from db import db
+import requests
 from blocklist import BLOCKLIST
 from models import UserModel
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
-from schemas import UserSchema
+from schemas import UserSchema, UserRegisterSchema
 from passlib.hash import pbkdf2_sha256
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 blp = Blueprint("users", __name__, description="Operation on users")
+
+# send simple mail from mailgun client to the registered used each time you register using your username and email id
+def send_simple_message(to, subject, body):
+    domain = os.getenv("MAILGUN_DOMAIN")
+    return requests.post(
+  		f"https://api.mailgun.net/v3/{domain}/messages",
+  		auth=("api", os.getenv("MAILGUN_API_KEY")),
+  		data={"from": f"Excited User <mailgun@{domain}>",
+  			"to": [to],
+  			"subject": subject,
+  			"text": body})
 
 # NOTE: Currently we have added JWT requirement i.e Bearer token requirement for only item and user. We can extend it to other entities such as stores and tags too
 
 @blp.route("/register")
 class UserRegister(MethodView):
-    @blp.arguments(UserSchema)
+    @blp.arguments(UserRegisterSchema)
     def post(self, user_data):
-        # find if there already exists a user. remember get_or_404 doesn't take kwargs as arguments hence we need to use filter to see if a user with username exists
+        # find if there already exists a user with the given username or email. remember get_or_404 doesn't take kwargs as arguments hence we need to use filter to see if a user with username exists
         try:
-            user = UserModel.query.filter(UserModel.username == user_data["username"]).first()
+            user = UserModel.query.filter(
+                or_(
+                UserModel.username == user_data["username"], 
+                UserModel.email == user_data["email"]
+                )
+            ).first()
         except IntegrityError:
-            abort(409, message="User with this Id already exists in database.")
+            abort(409, message="User with this username or email already exists in database.")
 
         user = UserModel(
             username=user_data["username"],
+            email=user_data["email"],
             password=pbkdf2_sha256.hash(user_data["password"]) 
         )
         db.session.add(user)
         db.session.commit()
+
+        # send a successful sign up message to the email id of the user.
+        send_simple_message(
+            to=user.email,
+            subject="Successfully signed up.",
+            body=f"Hi {user.username}! You have successfully signed up for the Stores REST API."
+        )
 
         return {"message": "User created successfully."}, 201
 
@@ -54,6 +81,13 @@ class UserLogin(MethodView):
             access_token = create_access_token(identity=user.id, fresh=True) # fresh=True specifies that this is a new and fresh token for a user session
             refresh_token = create_refresh_token(identity=user.id) # refresh token is being created so that the endpoints that are hit frequently do not require fresh tokens each time as fresh tokens may generate after just a span of minutes causing irritation to the user as they would require loggin in again and again. 
             #Hence we create refresh tokens. These tokens will be refreshed each time we hit refresh endpoint. However for critical operations such as deletes, we will always prefer to use a fresh token 
+
+            send_simple_message(
+                to=user.email,
+                subject="Successfully logged in.",
+                body=f"Hi {user.username}! You have successfully logged in for the Stores REST API."
+            )
+
             return {"access_token": access_token, "refresh_token": refresh_token}
         
         abort(404, message="User Not Found.")
